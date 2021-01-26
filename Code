@@ -1,0 +1,251 @@
+// ==UserScript==
+// @name         Toast Client
+// @namespace    𝐌𝐫. 𝐓𝐨𝐚𝐬𝐭#6693
+// @version      0.1
+// @description  Wont make you better. Just the game will be better UwU.
+// @author       Me
+// @icon         https://cdn.discordapp.com/icons/803365055164710913/de12917f90c38cfee9a19e05cfe0f3ca.png?size=128
+// @match        http://*/*
+// @grant        none
+// ==/UserScript==
+
+
+
+window.oncontextmenu = function () {
+   return false;
+};
+
+(function() {
+    'use strict';
+
+    // Right click secondary
+    $("#cvs").mousedown(function(ev){
+        if(ev.which == 3) {
+            playerSwapWeapon(player, 1);
+            setTimeout(shootBullet(player), 1);
+            playerSwapWeapon(player, 1);
+        }
+    });
+})();
+
+    window.findUserByIndex = function(a) {
+        for (var b = 0; b < gameObjects.length; ++b)
+            if (gameObjects[b].index === a) {
+                var playerTemp = gameObjects[b];
+                if(playerTemp.isLoggedIn)
+                    playerTemp.name = playerTemp.account.user_name;
+                return playerTemp;
+            }
+        return null;
+    };
+
+var halpTextArr = {
+    "Shortcuts":       [
+        "`F1` or `Ctrl+?` to show the halp menu",
+        "Hold `right click` to fire secondary, release to go back to primary",
+        "Zoom using `-` and `+`, `backtick` to reset zoom",
+        
+    ],
+    "Features":        [
+        "Shows enemies on mini-map",
+        "Increases size and view of mini-map",
+        "Easy secondary",
+        "Shows weapon camos tooltip",
+        "Accurate aim cursor",
+        "Zoom map out or in",
+        "Combo Annoucer",
+        "Max out the name field",
+    ],
+    "Class shortcuts": [
+        "`1` to set the class to Triggerman on next spawn",
+        "`2` to set the class to Detective on next spawn",
+        "`3` to set the class to Hunter on next spawn",
+        "`4` to set the class to Run 'N Gun on next spawn",
+        "`5` to set the class to Vince on next spawn",
+        "`6` to set the class to Rocketeer on next spawn",
+        "`7` to set the class to Spray N' Pray on next spawn",
+        "`8` to set the class to Arsonist on next spawn",
+        "`9` to set the class to Duck on next spawn",
+        "`0` to set the class to Nademan on next spawn",
+    ],
+};
+var halpText    = '';
+halpText += "Toast Client\n";
+halpText += "\n";
+for (var headingText in halpTextArr) {
+    var sectionTextArr = halpTextArr[headingText];
+    halpText += headingText + ":\n";
+    for (var i in sectionTextArr) {
+        halpText += "  - " + sectionTextArr[i] + "\n";
+    }
+    halpText += "\n";
+}
+
+// Faster minimap.
+drawMiniMapFPS = 1;
+
+// Setup keyboard shortcuts.
+var autoJump                = false;
+var zoomJumpPx              = 500;
+var originalMaxScreenHeight = maxScreenHeight;
+var originalMaxScreenWidth  = maxScreenWidth;
+c.addEventListener('keydown', function (event) {
+    if (!document.activeElement || document.activeElement.tagName != 'INPUT') {
+        event.preventDefault();
+        var keyCode = event.keyCode ? event.keyCode : event.which;
+        // @formatter:off
+        if (keyCode == 49 || keyCode ==  97) pickedCharacter(0); // Press `1` to set the class to Triggerman on next spawn.
+        if (keyCode == 50 || keyCode ==  98) pickedCharacter(1); // Press `2` to set the class to Detective on next spawn.
+        if (keyCode == 51 || keyCode ==  99) pickedCharacter(2); // Press `3` to set the class to Hunter on next spawn.
+        if (keyCode == 52 || keyCode == 100) pickedCharacter(3); // Press `4` to set the class to Run 'N Gun on next spawn.
+        if (keyCode == 53 || keyCode == 101) pickedCharacter(4); // Press `5` to set the class to Vince on next spawn.
+        if (keyCode == 54 || keyCode == 102) pickedCharacter(5); // Press `6` to set the class to Rocketeer on next spawn.
+        if (keyCode == 55 || keyCode == 103) pickedCharacter(6); // Press `7` to set the class to Spray N' Pray on next spawn.
+        if (keyCode == 56 || keyCode == 104) pickedCharacter(7); // Press `8` to set the class to Arsonist on next spawn.
+        if (keyCode == 57 || keyCode == 105) pickedCharacter(8); // Press `9` to set the class to Duck on next spawn.
+        if (keyCode == 48 || keyCode ==  96) pickedCharacter(9); // Press `0` to set the class to Nademan on next spawn.
+        // @formatter:on
+        if (keyCode == 32 && !gameStart) { // Press ` ` to join match.
+            setTimeout(function () {
+                document.getElementById('startButton').click();
+            }, 100);
+        } else if (keyCode == 112 || (event.ctrlKey && keyCode == 191)) { // Press `F1` or `Ctrl+?` to show the halp menu.
+            alert(halpText);
+        } else if (keyCode == 0 && !aimbot_active) { // Hold `Alt` to activate aimbot.
+            aimbot_activate();
+        }
+
+        if (gameStart) { // Don't zoom if the game's not started yet.
+            if (keyCode == 187 || keyCode == 107) { // Press `+` to zoom in.
+                setZoom(maxScreenHeight - zoomJumpPx, maxScreenWidth - zoomJumpPx);
+            } else if (keyCode == 189 || keyCode == 109) { // Press `-` to zoom out.
+                setZoom(maxScreenHeight + zoomJumpPx, maxScreenWidth + zoomJumpPx);
+            } else if (keyCode == 192) { // Press ` (backtick) to reset zoom.
+                setZoom(originalMaxScreenHeight, originalMaxScreenWidth);
+            }
+        }
+    }
+});
+
+function setZoom (maxScreenHeight, maxScreenWidth) {
+    localStorage.setItem('maxScreenHeight', maxScreenHeight);
+    localStorage.setItem('maxScreenWidth', maxScreenWidth);
+    applyZoom();
+}
+
+function applyZoom () {
+    maxScreenHeight = parseInt(localStorage.getItem('maxScreenHeight'));
+    maxScreenWidth  = parseInt(localStorage.getItem('maxScreenWidth'));
+    resize();
+}
+
+// Reapply previous zoom on game start.
+var oldStartGameFunction = startGame;
+
+function startGame (a) {
+    oldStartGameFunction(a);
+    applyZoom();
+}
+
+// Override gameScroll.
+function gameScroll (a) {
+}
+
+var scrollLocked = false;
+var timeout;
+
+// Improve scroll switch weapon.
+c.addEventListener('scroll', function (event) {
+    // Do nothing if still scrollLocked.
+    if (scrollLocked === true) {
+        return false;
+    }
+    // Lock.
+    scrollLocked = true;
+
+    // Switch weapon if not scrollLocked.
+    playerSwapWeapon(player, 1);
+
+    clearTimeout(timeout);
+    timeout = setTimeout(function () {
+        // Unlock.
+        scrollLocked = false;
+    }, 250);
+});
+
+// Setup mouse shortcuts.
+c.addEventListener('mousedown', function (event) {
+    event.preventDefault();
+    if (event.which == 0) { // Shoots all bullets on middle click.
+        for (var i = 0; i < 100; i++) {
+        }
+    } else if (event.which == 3) { // Shoots secondary on right click down.
+        playerSwapWeapon(player, 1);
+        setTimeout(shootBullet(player), 1);
+    }
+});
+c.addEventListener('mouseup', function (event) {
+    event.preventDefault();
+    if (event.which == 3) { // Goes back to primary on up.
+        setTimeout(playerSwapWeapon(player, 1), 1);
+    }
+});
+
+window.onblur = function () {
+    console.log('Window blurred');
+    aimbot_deactivate();
+};
+
+
+var adWrapperHtml = '';
+adWrapperHtml += "<h3 class=\"menuHeader\">Toast Client</h3>";
+adWrapperHtml += "  <p style=\"color: rgba(0, 0, 0, 0.4);\"><b>Owner:</b> FlamingT0ast</p>";
+adWrapperHtml += "  <p style=\"color: rgba(0, 0, 0, 0.4);\"><b>Version:</b> 0.3.0</p>";
+adWrapperHtml += "  <p style=\"color: rgba(0, 0, 0, 0.4);\"><b>Update Links:</b> <a target=\"_blank\" href=\"https://github.com/Phantomoffury/Toast-Client\">https://github.com/Phantomoffury/Toast-Client</a></p>";
+adWrapperHtml += "  <p style=\"color: rgba(0, 0, 0, 0.4);\"><b>Discord Link:</b> <a target=\"_blank\" href=\"https://discord.gg/czgGfsVEur\">https://discord.gg/czgGfsVEur</a></p>";
+adWrapperHtml += "<br>";
+adWrapperHtml += "<h3 class=\"menuHeader\">Dumb Stuff</h3>";
+adWrapperHtml += "  <button class=\"smallMenuButton\" style=\"padding-top: 10px;\" onclick=\"document.getElementById('playerNameInput').value = '﷽﷽﷽﷽﷽﷽﷽﷽﷽﷽﷽﷽﷽﷽﷽';\">MAX OUT USERNAME</button><br>";
+adWrapperHtml += "<br>";
+for (var headingText in halpTextArr) {
+    var sectionTextArr = halpTextArr[headingText];
+    adWrapperHtml += "<button class=\"smallMenuButton\" style=\"width: 100%; padding-top: 10px;\" onclick=\"var all = document.getElementsByClassName('modDetailsSection'); for (var i = 0; i < all.length; i++) if (all[i] != this.nextSibling) all[i].style.maxHeight = '0px'; var el = this.nextSibling; if (el.style.maxHeight == '0px') { el.style.maxHeight = '200px'; } else { el.style.maxHeight = '0px'; } \">" + headingText.toUpperCase() + "</button>";
+    adWrapperHtml += "<div class=\"modDetailsSection\" style=\"max-height: 0px; -webkit-transition: max-height 0.2s; -moz-transition: max-height 0.2s; -ms-transition: max-height 0.2s; -o-transition: max-height 0.2s; transition: max-height 0.2s; overflow-y: scroll; line-height: 200%;\">";
+    adWrapperHtml += "  <ul>";
+    for (var i in sectionTextArr) {
+        adWrapperHtml += "    <li style=\"color: rgba(0, 0, 0, 0.4);\">" + sectionTextArr[i].replace(/`(.+?)`/g, "<b class=\"inputSelectItem\">$1</b>") + "</li>";
+    }
+    adWrapperHtml += "  </ul>";
+    adWrapperHtml += "</div>";
+}
+document.getElementById('adWrapper').innerHTML = adWrapperHtml;
+
+// Change mini-map size.
+document.getElementById('map').style.width  = '300px';
+document.getElementById('map').style.height = '300px';
+
+
+// Show weapon camo in tooltip.
+var weaponNames = ["Machine Gun", "Desert Eagle", "Sniper", "Grenade Launcher", "Rocket Launcher", "Machine Pistol", "Minigun", "Flamethrower"];
+
+var weaponNum = 0;
+document.getElementById('charWpn').addEventListener('click', function () {
+    weaponNum = 0;
+}, false);
+document.getElementById('charWpn2').addEventListener('click', function () {
+    weaponNum = 1;
+}, false);
+document.getElementById('camoList').addEventListener('click', showCurrentWeapon, false);
+
+function showCurrentWeapon () {
+    var a = characterClasses[currentClassID].weaponIndexes[weaponNum]; // Get the weapon id.
+    var x = 0;
+    while (camoDataList[a][x].id != getCookie('wpnSkn' + a)) { // Find the proper id of the camo.
+        x = x + 1;
+    }
+    if (weaponNum === 0) {
+        characterWepnDisplay.innerHTML = "<b>Primary:</b><div class='hatSelectItem' style='display: inline-block; color: " + getItemRarityColor(camoDataList[a][x].chance) + ";'>" + camoDataList[a][x].name + " x" + (parseInt(camoDataList[a][x].count) + 1) + "<div class='hoverTooltip'><div style='float:left; margin-top:10px; margin-right:10px; width:62px; height:62px; background:url(" + getCamoURL(camoDataList[a][x].id) + "); background-size:cover; background-repeat:no-repeat; background-position:50% 50%;'></div><div style='color:" + getItemRarityColor(camoDataList[a][x].chance) + "; font-size:16px; margin-top:5px;'>" + camoDataList[a][x].name + "</div><div style='color:#ffd100; font-size:12px; margin-top:0px;'>droprate " + camoDataList[a][x].chance + "%</div><div style='font-size:8px; color:#d8d8d8; margin-top:1px;'><i>weapon camo</i></div><div style='font-size:12px; margin-top:5px;'>" + weaponNames[a] + " weapon skin.</div><div style='font-size:8px; color:#d8d8d8; margin-top:5px;'><i></i></div></div></div>";
+    } else {
+        characterWepnDisplay2.innerHTML = "<b>Secondary:</b><div class='hatSelectItem' style='display: inline-block; color: " + getItemRarityColor(camoDataList[a][x].chance) + ";'>" + camoDataList[a][x].name + " x" + (parseInt(camoDataList[a][x].count) + 1) + "<div class='hoverTooltip'><div style='float:left; margin-top:10px; margin-right:10px; width:62px; height:62px; background:url(" + getCamoURL(camoDataList[a][x].id) + "); background-size:cover; background-repeat:no-repeat; background-position:50% 50%;'></div><div style='color:" + getItemRarityColor(camoDataList[a][x].chance) + "; font-size:16px; margin-top:5px;'>" + camoDataList[a][x].name + "</div><div style='color:#ffd100; font-size:12px; margin-top:0px;'>droprate " + camoDataList[a][x].chance + "%</div><div style='font-size:8px; color:#d8d8d8; margin-top:1px;'><i>weapon camo</i></div><div style='font-size:12px; margin-top:5px;'>" + weaponNames[a] + " weapon skin.</div><div style='font-size:8px; color:#d8d8d8; margin-top:5px;'><i></i></div></div></div>";
+    }
+}
